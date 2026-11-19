@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "data_class": "synthetic_only",
+  "purpose": "Design fixture for a future isolated policy and real query-path test; not a product authorization grant",
+  "records": [
+    {
+      "id": "mem-private-a",
+      "owner_id": "adult_a",
+      "scope": "PERSONAL",
+      "content": "合成偏好 A",
+      "status": "ACTIVE",
+      "memory_policy": "persist_confirmed"
+    },
+    {
+      "id": "mem-private-b",
+      "owner_id": "adult_b",
+      "scope": "PERSONAL",
+      "content": "合成偏好 B",
+      "status": "ACTIVE",
+      "memory_policy": "persist_confirmed"
+    },
+    {
+      "id": "mem-family-approved",
+      "owner_id": "adult_a",
+      "scope": "FAMILY",
+      "content": "合成共享事项",
+      "status": "ACTIVE",
+      "shared_approved": true,
+      "memory_policy": "persist_confirmed"
+    },
+    {
+      "id": "mem-family-unapproved",
+      "owner_id": "adult_a",
+      "scope": "FAMILY",
+      "content": "未确认共享的合成事项",
+      "status": "ACTIVE",
+      "shared_approved": false,
+      "memory_policy": "candidate_only"
+    },
+    {
+      "id": "mem-deleted",
+      "owner_id": "adult_a",
+      "scope": "PERSONAL",
+      "content": "合成待删事项",
+      "status": "DELETED",
+      "memory_policy": "persist_confirmed"
+    }
+  ],
+  "fixture_grants": [
+    {
+      "id": "grant-a-s1",
+      "owner_id": "adult_a",
+      "session_id": "session-1",
+      "expires_at": "2026-09-25T00:00:00Z",
+      "issuer": "synthetic_test_fixture"
+    },
+    {
+      "id": "grant-a-expired",
+      "owner_id": "adult_a",
+      "session_id": "session-1",
+      "expires_at": "2026-09-20T12:00:00Z",
+      "issuer": "synthetic_test_fixture"
+    }
+  ],
+  "evaluate_at": "2026-09-24T12:00:00Z",
+  "cases": [
+    {"id": "authorized_owner_positive", "session_id": "session-1", "session_owner": "adult_a", "grant_id": "grant-a-s1", "speaker_claim": null, "query_scope": "PERSONAL", "expected_ids": ["mem-private-a"]},
+    {"id": "unknown_denied", "session_id": "session-1", "session_owner": null, "grant_id": null, "speaker_claim": null, "query_scope": "PERSONAL", "expected_ids": []},
+    {"id": "self_claim_denied", "session_id": "session-1", "session_owner": null, "grant_id": null, "speaker_claim": "adult_a", "query_scope": "PERSONAL", "expected_ids": []},
+    {"id": "wrong_owner_denied", "session_id": "session-1", "session_owner": "adult_b", "grant_id": "grant-a-s1", "speaker_claim": null, "query_scope": "PERSONAL", "expected_ids": []},
+    {"id": "expired_grant_denied", "session_id": "session-1", "session_owner": "adult_a", "grant_id": "grant-a-expired", "speaker_claim": null, "query_scope": "PERSONAL", "expected_ids": []},
+    {"id": "new_session_without_grant_denied", "session_id": "session-2", "session_owner": "adult_a", "grant_id": null, "speaker_claim": null, "query_scope": "PERSONAL", "expected_ids": []},
+    {"id": "approved_family_visible", "session_id": "session-2", "session_owner": null, "grant_id": null, "speaker_claim": null, "query_scope": "FAMILY", "expected_ids": ["mem-family-approved"]}
+  ]
+}
