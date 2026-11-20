@@ -1,5 +1,7 @@
 # soul-memory-kernel
 
+[![CI](https://github.com/rockcli/soul-memory-kernel/actions/workflows/ci.yml/badge.svg)](https://github.com/rockcli/soul-memory-kernel/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/rockcli/soul-memory-kernel?display_name=tag&color=10B981)](https://github.com/rockcli/soul-memory-kernel/releases/tag/v0.1.0)
 [![Python >=3.11](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://www.python.org/)
 [![Dependencies: zero](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen.svg)](#installation)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -12,35 +14,13 @@ A pure-Python (`>=3.11`, zero third-party runtime dependencies) privacy-first ke
 
 ## Architecture
 
-```
-                     +-------------------------------------------+
-                     |          Application / Provider           |
-                     |   (Supplies TextExtractionClient & Sink)  |
-                     +---------+-----------------------+---------+
-                               |                       |
-                               v                       v
-  +----------------+   +---------------+       +---------------+
-  |  soul/         |   |  extraction/  |       |  privacy/     |
-  |  - core.py     |   |  - extractor  |       |  - kernel     |
-  |  - policy.py   |   |  - budget     |       |  - output     |
-  |  - profile.py  |   |  - prompt     |       |  - session    |
-  |  - cli.py      |   +-------+-------+       |  - gate       |
-  +-------+--------+           |               +---------------+
-          |                    |                       |
-          |  SessionAccess     | MemoryService.propose |
-          v                    v                       v
-  +------------------------------------------------------------+
-  |                          memory/                           |
-  |  model · store (SQLite) · policy · grants · pending · cli  |
-  |  projection (send_provider seam) · proposal_intent         |
-  +----------------------------+-------------------------------+
-                               |
-                               v (counts & closed enums only)
-  +------------------------------------------------------------+
-  |                           obs/                             |
-  |  events.py (fail-closed JSONL metadata-only event log)     |
-  +------------------------------------------------------------+
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.png" />
+    <source media="(prefers-color-scheme: light)" srcset="docs/architecture-light.png" />
+    <img src="docs/architecture-light.png" alt="soul-memory-kernel architecture" width="900" />
+  </picture>
+</p>
 
 ### Module Overview
 

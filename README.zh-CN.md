@@ -1,5 +1,7 @@
 # soul-memory-kernel
 
+[![CI](https://github.com/rockcli/soul-memory-kernel/actions/workflows/ci.yml/badge.svg)](https://github.com/rockcli/soul-memory-kernel/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/rockcli/soul-memory-kernel?display_name=tag&color=10B981)](https://github.com/rockcli/soul-memory-kernel/releases/tag/v0.1.0)
 [![Python >=3.11](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://www.python.org/)
 [![Dependencies: zero](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen.svg)](#安装)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -12,35 +14,13 @@
 
 ## 架构概览
 
-```
-                     +-------------------------------------------+
-                     |             上层应用 / Provider             |
-                     |   (注入 TextExtractionClient 与输出 Sink)   |
-                     +---------+-----------------------+---------+
-                               |                       |
-                               v                       v
-  +----------------+   +---------------+       +---------------+
-  |  soul/         |   |  extraction/  |       |  privacy/     |
-  |  - core.py     |   |  - extractor  |       |  - kernel     |
-  |  - policy.py   |   |  - budget     |       |  - output     |
-  |  - profile.py  |   |  - prompt     |       |  - session    |
-  |  - cli.py      |   +-------+-------+       |  - gate       |
-  +-------+--------+           |               +---------------+
-          |                    |                       |
-          |  SessionAccess     | MemoryService.propose |
-          v                    v                       v
-  +------------------------------------------------------------+
-  |                          memory/                           |
-  |  model · store (SQLite) · policy · grants · pending · cli  |
-  |  projection (send_provider 接缝) · proposal_intent         |
-  +----------------------------+-------------------------------+
-                               |
-                               v（仅计数与闭集枚举）
-  +------------------------------------------------------------+
-  |                           obs/                             |
-  |  events.py（fail-closed 纯元数据 JSONL 事件日志）            |
-  +------------------------------------------------------------+
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.png" />
+    <source media="(prefers-color-scheme: light)" srcset="docs/architecture-light.png" />
+    <img src="docs/architecture-light.png" alt="soul-memory-kernel 架构图" width="900" />
+  </picture>
+</p>
 
 ### 模块说明
 
