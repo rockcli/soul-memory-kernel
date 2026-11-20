@@ -56,6 +56,28 @@ pip install -e .
 
 ---
 
+## 非目标
+
+- **不做说话人/用户身份认证** — `speaker_claim` 与手动切换身份绝不会解锁 `PERSONAL` / `SAFETY` 作用域或档案；`PrivacyKernel.open_session()` 会直接忽略 `SpeakerObservation`。
+- **M2.1 阶段不开放 `PERSONAL` / `SAFETY` 作用域读写** — `M2_1_ALLOWED_SCOPES` 固定仅允许 `{"FAMILY"}`（过敏等 `memory_class="SAFETY"` 记录仍在 `FAMILY` 作用域内流转）。
+- **不内置网络或 LLM 客户端** — 仓库零外网请求代码；未注入 `TextExtractionClient` 时，`default_client_factory()` 直接抛出 `TextExtractionAdapterMissing`。
+- **`privacy` 包仍为默认关闭的实验模块** — `PrivacyKernel(enabled=False)` 与 `ControlledOutputGate` 目前属于合成验证组件，不含生产级授权签发器或语义内容安全审核；排序保障仅延伸至 `sink.enqueue` / `stop`。
+- **提取预算仅作成本熔断** — 日调用计数保存在 `memory.sqlite3` 的 `extraction_usage` 表中，更换或删除数据库文件会重置计数。
+
+## 已知坑点
+
+- **`memory_source.source_id` 刻意不加外键与级联删除** — 若使用 `ON DELETE CASCADE`，删除祖先记录会同时抹掉血缘关系，导致衍生记忆看似“无上游祖先”而被意外召回；当前设计保留孤立血缘行，让衍生记录永久进入 `missing_provenance` 不可达状态。
+- **SQLite 开启外键时的 `DROP TABLE` 隐式清空陷阱** — 在 `PRAGMA foreign_keys = ON` 下执行 `DROP TABLE memory_record` 会静默触发外键级联删除并清空 `memory_audience`，且事务内执行 `PRAGMA foreign_keys = OFF` 无效；表重建迁移必须在 `BEGIN IMMEDIATE` 之前关闭外键并在提交前校验 `PRAGMA foreign_key_check`。
+- **`revoked` 与 `expired` 的语义区分** — `load_for_session()` 会直接过滤 `revoked_at IS NOT NULL` 使吊销授权表现为 `no_grant`（并阻断同 `grant_id` 升版本复活），而 `expired` 与 `not_yet_valid`（`now < issued_at`）则会作为显式拒绝码保留。
+
+## 安全与信任边界
+
+- **文件与数据库隔离** — 零第三方运行时依赖、零出境请求。`memory.sqlite3` 强制校验 `0600` 属主权限、拒绝符号链接、检查 `PRAGMA quick_check` 与 `user_version == 3`，所有只读与投影链路统一以 SQLite `?mode=ro` 打开。
+- **投影接缝与提示词防注入** — `SoulCore.project()` 运行时拒绝未经接缝的原始快照，针对每条记录在当次查询后重新校验实时血缘闭包（若并发删库返回空闭包则 fail-closed 拦截），将控制符与换行折叠为单行输出，并把固定行为边界置于记忆块之后。
+- **零正文审计与受控 CLI** — `obs.events` 严格按白名单清洗事件负载并丢弃所有自由文本。`soul-memory-cli` 不从 `.env` 读取外部模型密钥、输出脱敏错误提示，并在非交互终端执行破坏性命令（`delete`、`sweep`、`grant revoke`）时强制要求 `--yes`。
+
+---
+
 ## 运行测试
 
 测试套件内置仓库级离线网络守门（`tests/conftest.py`），自动阻断所有非 loopback 地址解析与外网连接：

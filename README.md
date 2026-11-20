@@ -133,6 +133,28 @@ soul-memory-cli --db data/memory.sqlite3 list
 
 ---
 
+## Non-Goals
+
+- **Not user or speaker authentication** — `speaker_claim` and manual selection never unlock `PERSONAL` or `SAFETY` scopes/profiles, and `PrivacyKernel.open_session()` ignores `SpeakerObservation`.
+- **No `PERSONAL` or `SAFETY` scope recall in M2.1** — `M2_1_ALLOWED_SCOPES` is fixed to `{"FAMILY"}` on both reads and writes (`memory_class="SAFETY"`, such as allergies, still operates within `FAMILY` scope).
+- **No bundled network or LLM transport** — Zero outbound network code ships in this package; `default_client_factory()` raises `TextExtractionAdapterMissing` unless the caller injects a `TextExtractionClient`.
+- **Experimental `privacy` package** — `PrivacyKernel(enabled=False)` and `ControlledOutputGate` are synthetic, default-off modules without a production grant issuer or semantic content safety filter; ordering invariants terminate at `sink.enqueue` / `stop`.
+- **Cost fuse, not a tamper-proof quota boundary** — Daily extraction budgets live in the local `extraction_usage` table inside `memory.sqlite3`; switching or deleting the DB resets counters.
+
+## Known Pitfalls
+
+- **Orphan provenance rows are intentional (`memory_source.source_id` has no FK)** — Adding `ON DELETE CASCADE` would wipe provenance links when an ancestor is deleted and make derived memories appear ancestor-free; instead, ancestor deletion leaves derived rows permanently unreachable (`missing_provenance`).
+- **SQLite schema rebuilds with foreign keys** — Running `DROP TABLE memory_record` while `PRAGMA foreign_keys = ON` silently triggers cascading deletes on `memory_audience` and `memory_source` without error, and `PRAGMA foreign_keys = OFF` is ignored inside a transaction. Migrations must disable foreign keys *before* `BEGIN IMMEDIATE` and re-verify via `PRAGMA foreign_key_check`.
+- **`revoked` vs `expired` grant semantics** — `SqliteGrantStore.load_for_session()` filters `revoked_at IS NULL` so revoked grants collapse into `no_grant` (preventing revive bugs on higher versions), whereas `expired` and `not_yet_valid` (`now < issued_at`) surface as explicit deny reasons.
+
+## Security & Trust Boundaries
+
+- **File & SQLite hardening** — Zero third-party runtime dependencies and zero outbound network calls. `memory.sqlite3` enforces `0600` permissions, rejects symlinks, validates `PRAGMA quick_check` and `user_version == 3`, and opens all read/projection paths with `?mode=ro`.
+- **Projection seam & anti-injection** — `SoulCore.project()` rejects raw `MemorySnapshot` / `PendingItem` inputs at runtime, re-authorizes each entry against its live provenance closure (failing closed on empty closures if a record was concurrently deleted), folds control/newline characters to single-line bullets, and places `FIXED_BEHAVIOR_BOUNDARIES` after memory blocks.
+- **Metadata-only observability & safe CLI** — `obs.events` drops unknown event names, dynamic keys, nested dicts, and free text. `soul-memory-cli` never reads provider API keys from `.env`, suppresses raw exception messages, and refuses non-TTY destructive actions (`delete`, `sweep`, `grant revoke`) without `--yes`.
+
+---
+
 ## Running Tests
 
 The test suite includes an automatic offline network guard (`tests/conftest.py`) that blocks any non-loopback network resolution or socket connection.
